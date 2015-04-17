@@ -1,0 +1,10 @@
+{
+	"eqnull": true,
+	"loopfunc": true,
+	"node": true,
+	"esnext": true,
+	"newcap": false,
+	"globals": {
+		"Symbol": false
+	}
+}

@@ -1,0 +1,32 @@
+{
+	"name": "owe-http",
+	"version": "0.1.1",
+	"description": "Exposes an owe.js API node via HTTP.",
+	"keywords": [
+		"owe",
+		"owe.js",
+		"http"
+	],
+	"license": "GPL-3.0",
+	"author": {
+		"name": "Clemens Damke",
+		"email": "clemens@cortys.de",
+		"url": "http://www.cortys.de"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/runnr/owe-http.git"
+	},
+	"peerDependencies": {
+		"owe.js": "~0.1.1"
+	},
+	"devDependencies": {
+		"owe.js": "~0.1.1",
+		"gulp": "~3.8.11",
+		"gulp-mocha": "~2.0.0",
+		"expect.js": "~0.3.1"
+	},
+	"scripts": {
+		"test": "./node_modules/.bin/mocha"
+	}
+}
