@@ -1,6 +1,6 @@
 {
 	"name": "owe-http",
-	"version": "0.1.1",
+	"version": "0.1.3",
 	"description": "Exposes an owe.js API node via HTTP.",
 	"keywords": [
 		"owe",
@@ -17,11 +17,12 @@
 		"type": "git",
 		"url": "https://github.com/runnr/owe-http.git"
 	},
+	"main": "src/index.js",
 	"peerDependencies": {
-		"owe.js": "~0.1.1"
+		"owe.js": "~0.1.3"
 	},
 	"devDependencies": {
-		"owe.js": "~0.1.1",
+		"owe.js": "~0.1.3",
 		"gulp": "~3.8.11",
 		"gulp-mocha": "~2.0.0",
 		"expect.js": "~0.3.1"
