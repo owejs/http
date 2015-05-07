@@ -19,14 +19,16 @@ function oweHttp(api, options) {
 			currRoute = "",
 			route = [];
 
+		console.log(parsedRequest);
+
 		for(let i = 1; i < path.length; i++) {
 			let c = path.charAt(i);
 			if(c === "/") {
 				route.push(querystring.unescape(currRoute));
 				currRoute = "";
-				continue;
 			}
-			currRoute += c;
+			else
+				currRoute += c;
 		}
 		route.push(querystring.unescape(currRoute));
 
@@ -34,20 +36,47 @@ function oweHttp(api, options) {
 		for(let r of route)
 			currApi = currApi.route(r);
 
-		var t2 = process.hrtime();
+		var closeData;
 
-		console.log((t2[0] - t[0]) * 1000 + (t2[1] - t[1]) / 1000000);
+		if(parsedRequest.search !== "") {
+			let getKeys = Object.keys(parsedRequest.query);
 
-		currApi.close().then(function(result) {
+			if(getKeys.length === 1 && parsedRequest.search.indexOf("=") === -1)
+				closeData = getKeys[0];
+			else
+				closeData = parsedRequest.query;
+		}
+
+		currApi.close(closeData).then(function(result) {
+
+			var t2 = process.hrtime();
+
+			console.log((t2[0] - t[0]) * 1000 + (t2[1] - t[1]) / 1000000);
+
+			var sendAsJson = typeof result === "object";
+
+			if(sendAsJson)
+				result = JSON.stringify(result);
+
 			response.writeHead(200, {
-				"Content-Type": typeof result === "object" ? "application/json" : "text/plain"
+				"Content-Type": sendAsJson ? "application/json; charset=utf-8" : "text/plain; charset=utf-8",
+				"Content-Length": Buffer.byteLength(result, "utf-8")
 			});
-			response.end(JSON.stringify(result), "utf8");
+
+			response.end(result, "utf8");
+
 		}, function(err) {
+
+			var sendAsJson = typeof result === "object";
+
+			if(sendAsJson)
+				err = JSON.stringify(err);
+
 			response.writeHead(404, {
-				"Content-Type": typeof result === "object" ? "application/json" : "text/plain"
+				"Content-Type": sendAsJson ? "application/json; charset=utf-8" : "text/plain; charset=utf-8",
+				"Content-Length": Buffer.byteLength(err, "utf-8")
 			});
-			response.end(JSON.stringify(err), "utf8");
+			response.end(err, "utf8");
 		});
 	};
 

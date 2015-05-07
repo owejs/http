@@ -1,12 +1,14 @@
+"use strict";
+
 var owe = require("owe.js"),
 	oweHttp = require("../src"),
 	http = require("http");
 
 var o = owe({
-	a: "test",
+	a: "\u00bd + \u00bc = \u00be",
 	b: [1, 2, 3],
 	c: http,
-	d: function(word) {
+	d(word) {
 		return "Hello " + word;
 	}
 }, owe.serve({
