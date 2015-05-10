@@ -12,8 +12,20 @@ function oweHttp(api, options) {
 	if(!owe.isApi(api))
 		throw new TypeError("owe-http can only expose owe.Apis or bound object.");
 
+	function sendResponse(request, response, data) {
+
+		var sendAsJson = typeof data === "object";
+
+		if(sendAsJson)
+			data = JSON.stringify(data);
+
+		response.setHeader("Content-Type", sendAsJson ? "application/json; charset=utf-8" : "text/plain; charset=utf-8");
+		response.setHeader("Content-Length", Buffer.byteLength(data, "utf-8"));
+
+		response.end(data, "utf8");
+	}
+
 	return function servedHttpRequestListener(request, response) {
-		var t = process.hrtime();
 		var parsedRequest = url.parse(request.url, true),
 			path = parsedRequest.pathname,
 			currRoute = "",
@@ -49,34 +61,16 @@ function oweHttp(api, options) {
 
 		currApi.close(closeData).then(function(result) {
 
-			var t2 = process.hrtime();
+			response.statusCode = 200;
 
-			console.log((t2[0] - t[0]) * 1000 + (t2[1] - t[1]) / 1000000);
-
-			var sendAsJson = typeof result === "object";
-
-			if(sendAsJson)
-				result = JSON.stringify(result);
-
-			response.writeHead(200, {
-				"Content-Type": sendAsJson ? "application/json; charset=utf-8" : "text/plain; charset=utf-8",
-				"Content-Length": Buffer.byteLength(result, "utf-8")
-			});
-
-			response.end(result, "utf8");
-
+			sendResponse(request, response, result);
 		}, function(err) {
 
-			var sendAsJson = typeof result === "object";
+			response.statusCode = 404;
+			if(typeof err === "object" && err !== null && typeof err.message === "string")
+				response.statusMessage = err.message;
 
-			if(sendAsJson)
-				err = JSON.stringify(err);
-
-			response.writeHead(404, {
-				"Content-Type": sendAsJson ? "application/json; charset=utf-8" : "text/plain; charset=utf-8",
-				"Content-Length": Buffer.byteLength(err, "utf-8")
-			});
-			response.end(err, "utf8");
+			sendResponse(request, response, err);
 		});
 	};
 
