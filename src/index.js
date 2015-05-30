@@ -30,7 +30,9 @@ function oweHttp(api, options) {
 		}
 		route.push(querystring.unescape(currRoute));
 
-		var currApi = api;
+		var currApi = api.origin({
+			type: "http"
+		});
 		for(let r of route)
 			currApi = currApi.route(r);
 
