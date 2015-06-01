@@ -89,7 +89,7 @@ function failResponse(request, response, err) {
 function sendResponse(request, response, data) {
 
 	if(isStream.readable(data) || owe.resourceData(data).stream) {
-		data.on("error", failResponse.bind(null, request, response));
+		data.once("error", failResponse.bind(null, request, response));
 		data.pipe(response);
 		return;
 	}
