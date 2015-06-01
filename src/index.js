@@ -1,6 +1,6 @@
 "use strict";
 
-var owe = require("owe.js"),
+var owe = require("owe-core"),
 	isStream = require("is-stream"),
 	querystring = require("querystring"),
 	url = require("url");
@@ -12,6 +12,13 @@ function oweHttp(api, options) {
 
 	if(!owe.isApi(api))
 		throw new TypeError("owe-http can only expose owe.Apis or bound object.");
+
+	if(typeof options !== "object" || options === null)
+		options = {};
+
+	options = {
+
+	};
 
 	return function servedHttpRequestListener(request, response) {
 		var parsedRequest = url.parse(request.url, true),
@@ -31,7 +38,9 @@ function oweHttp(api, options) {
 		route.push(querystring.unescape(currRoute));
 
 		var currApi = api.origin({
-			type: "http"
+			type: "http",
+			request: request,
+			response: response
 		});
 		for(let r of route)
 			currApi = currApi.route(r);
@@ -60,20 +69,26 @@ function successResponse(request, response, data) {
 }
 
 function failResponse(request, response, err) {
-	response.statusCode = 404;
+
 	if(typeof err === "object" && err !== null && typeof err.message === "string") {
+
+		response.statusCode = err.status || 404;
+
 		response.statusMessage = err.message;
 		Object.defineProperty(err, "message", {
 			enumerable: true,
 			value: err.message
 		});
 	}
+	else
+		response.statusCode = 404;
+
 	sendResponse(request, response, err);
 }
 
 function sendResponse(request, response, data) {
 
-	if(isStream.readable(data)) {
+	if(isStream.readable(data) || owe.resourceData(data).stream) {
 		data.on("error", failResponse.bind(null, request, response));
 		data.pipe(response);
 		return;
@@ -86,8 +101,15 @@ function sendResponse(request, response, data) {
 
 	data = String(data);
 
-	response.setHeader("Content-Type", (sendAsJson ? "application/json" : "text/plain") + "; charset=utf-8");
-	response.setHeader("Content-Length", Buffer.byteLength(data, "utf8"));
+	if(!response.headersSent) {
+
+		if(response.getHeader("Content-Type"))
+			response.setHeader("Content-Type", (sendAsJson ? "application/json" : "text/html") + "; charset=utf-8");
+
+		if(response.getHeader("Content-Length"))
+			response.setHeader("Content-Length", Buffer.byteLength(data, "utf8"));
+	}
+
 	response.end(data, "utf8");
 }
 
