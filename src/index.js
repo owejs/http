@@ -3,6 +3,7 @@
 var owe = require("owe-core"),
 	isStream = require("is-stream"),
 	querystring = require("querystring"),
+	qs = require("qs"),
 	url = require("url");
 
 function oweHttp(api, options) {
@@ -18,97 +19,136 @@ function oweHttp(api, options) {
 
 	options = {
 
+		parseRequest: options.parseRequest || function(request, response) {
+			var parsedRequest = url.parse(request.url, true);
+
+			return {
+				route: this.parseRoute(request, response, parsedRequest.pathname),
+				closeData: this.parseCloseData(request, response, parsedRequest.search)
+			};
+		},
+
+		parseRoute: options.parseRoute || function(request, response, path) {
+			var currRoute = "",
+				route = [];
+			for(let i = 1; i < path.length; i++) {
+				let c = path.charAt(i);
+				if(c === "/") {
+					route.push(querystring.unescape(currRoute));
+					currRoute = "";
+				}
+				else
+					currRoute += c;
+			}
+			route.push(querystring.unescape(currRoute));
+
+			return route;
+		},
+
+		parseCloseData: options.parseCloseData || oweHttp.parseCloseData.simple,
+
+		contentType: options.contentType || function(request, response, data) {
+			if(isStream.readable(data) && "contentType" in data)
+				return data.contentType;
+			return typeof data === "object" ? "application/json" : "text/html";
+		},
+
+		parseResult: options.parseResult || function(request, response, data, type) {
+			if(type === "application/json")
+				return JSON.stringify(data, this.jsonReplacer, this.jsonSpace);
+			return data;
+		},
+
+		jsonReplacer: options.jsonReplacer,
+		jsonSpace: options.jsonSpace,
+
+		onSuccess: options.onSuccess || function(request, response, data) {
+			return data;
+		},
+		onFail: options.onFail || function(request, response, err) {
+			return err;
+		}
 	};
 
 	return function servedHttpRequestListener(request, response) {
-		var parsedRequest = url.parse(request.url, true),
-			path = parsedRequest.pathname,
-			currRoute = "",
-			route = [];
 
-		for(let i = 1; i < path.length; i++) {
-			let c = path.charAt(i);
-			if(c === "/") {
-				route.push(querystring.unescape(currRoute));
-				currRoute = "";
-			}
-			else
-				currRoute += c;
+		var parsedRequest,
+			route,
+			closeData;
+
+		try {
+			parsedRequest = options.parseRequest(request, response);
+			route = parsedRequest.route;
+			closeData = parsedRequest.closeData;
 		}
-		route.push(querystring.unescape(currRoute));
+		catch(err) {
+			failResponse(request, response, options, err);
+			return;
+		}
 
 		var currApi = api.origin({
 			type: "http",
 			request: request,
 			response: response
 		});
+
 		for(let r of route)
 			currApi = currApi.route(r);
 
-		var closeData;
-
-		if(parsedRequest.search !== "") {
-			let getKeys = Object.keys(parsedRequest.query);
-
-			if(getKeys.length === 1 && parsedRequest.search.indexOf("=") === -1)
-				closeData = getKeys[0];
-			else
-				closeData = parsedRequest.query;
-		}
-
 		currApi.close(closeData).then(
-			successResponse.bind(null, request, response),
-			failResponse.bind(null, request, response)
+			successResponse.bind(null, request, response, options),
+			failResponse.bind(null, request, response, options)
 		);
 	};
 }
 
-function successResponse(request, response, data) {
+oweHttp.parseCloseData = {
+	simple(request, response, search) {
+			if(search === "")
+				return;
+			return querystring.parse(search.slice(1));
+		},
+		extended(request, response, search) {
+			if(search === "")
+				return;
+			return qs.parse(search.slice(1));
+		}
+};
+
+function successResponse(request, response, options, data) {
 	response.statusCode = 200;
-	sendResponse(request, response, data);
+	sendResponse(request, response, options, options.onSuccess(request, response, data));
 }
 
-function failResponse(request, response, err) {
+function failResponse(request, response, options, err) {
 
-	if(typeof err === "object" && err !== null && typeof err.message === "string") {
+	response.statusCode = 404;
 
-		response.statusCode = err.status || 404;
+	err = options.onFail(request, response, err);
 
-		response.statusMessage = err.message;
-		Object.defineProperty(err, "message", {
-			enumerable: true,
-			value: err.message
-		});
-	}
-	else
-		response.statusCode = 404;
+	if(typeof err === "object" && err !== null && "status" in err)
+		response.statusCode = err.status;
 
-	sendResponse(request, response, err);
+	sendResponse(request, response, options, err);
 }
 
-function sendResponse(request, response, data) {
+function sendResponse(request, response, options, data) {
+
+	var type = options.contentType(request, response, data);
+
+	if(!response.headersSent && !response.getHeader("Content-Type"))
+		response.setHeader("Content-Type", type + "; charset=utf-8");
 
 	if(isStream.readable(data) || owe.resourceData(data).stream) {
-		data.once("error", failResponse.bind(null, request, response));
+		data.once("error", failResponse.bind(null, request, response, options));
 		data.pipe(response);
 		return;
 	}
 
-	var sendAsJson = typeof data === "object";
+	data = String(options.parseResult(request, response, data, type));
 
-	if(sendAsJson)
-		data = JSON.stringify(data);
-
-	data = String(data);
-
-	if(!response.headersSent) {
-
-		if(response.getHeader("Content-Type"))
-			response.setHeader("Content-Type", (sendAsJson ? "application/json" : "text/html") + "; charset=utf-8");
-
-		if(response.getHeader("Content-Length"))
-			response.setHeader("Content-Length", Buffer.byteLength(data, "utf8"));
-	}
+	if(!response.headersSent && !response.getHeader("Content-Length"))
+		response.setHeader("Content-Length", Buffer.byteLength(data, "utf8"));
 
 	response.end(data, "utf8");
 }

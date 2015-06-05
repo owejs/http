@@ -20,7 +20,8 @@
 	"main": "src/index.js",
 	"dependencies": {
 		"owe-core": "^0.4",
-		"is-stream": "1.0.1"
+		"is-stream": "1.0.1",
+		"qs": "3.1.0"
 	},
 	"peerDependencies": {
 		"owe-core": "^0.4"
