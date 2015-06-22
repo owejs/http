@@ -159,8 +159,12 @@ function sendResponse(request, response, options, data) {
 
 	if(isStream.readable(data) || resourceData.stream) {
 
-		if(!response.headersSent && "contentLength" in resourceData)
-			response.setHeader("Content-Length", resourceData.contentLength);
+		if(!response.headersSent) {
+			if("contentLength" in resourceData)
+				response.setHeader("Content-Length", resourceData.contentLength);
+			else if("contentLength" in data)
+				response.setHeader("Content-Length", data.contentLength);
+		}
 
 		data.once("error", failResponse.bind(null, request, response, options));
 		data.pipe(response);
