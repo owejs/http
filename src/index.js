@@ -19,6 +19,8 @@ function oweHttp(api, options) {
 
 	options = {
 
+		encoding: "utf8",
+
 		parseRequest: options.parseRequest || function(request, response) {
 			var parsedRequest = url.parse(request.url, true);
 
@@ -50,8 +52,16 @@ function oweHttp(api, options) {
 		parseCloseData: options.parseCloseData || oweHttp.parseCloseData.simple,
 
 		contentType: options.contentType || function(request, response, data) {
-			if(isStream.readable(data) && "contentType" in data)
+			var resourceData = owe.resourceData(data);
+
+			if("contentType" in resourceData)
+				return resourceData.contentType;
+
+			if((isStream.readable(data) || resourceData.stream) && "contentType" in data)
 				return data.contentType;
+
+			if(resourceData.file || resourceData.stream)
+				return;
 
 			return typeof data === "object" ? "application/json" : "text/html";
 		},
@@ -129,24 +139,29 @@ function successResponse(request, response, options, data) {
 
 function failResponse(request, response, options, err) {
 
-	response.statusCode = 404;
-
 	err = options.onFail(request, response, err);
 
 	if(typeof err === "object" && err !== null && "status" in err)
 		response.statusCode = err.status;
+	else
+		response.statusCode = 404;
 
 	sendResponse(request, response, options, err);
 }
 
 function sendResponse(request, response, options, data) {
 
-	var type = options.contentType(request, response, data);
+	var type = options.contentType(request, response, data),
+		resourceData = owe.resourceData(data);
 
-	if(!response.headersSent && !response.getHeader("Content-Type"))
-		response.setHeader("Content-Type", type + "; charset=utf-8");
+	if(type != null && !response.headersSent && !response.getHeader("Content-Type"))
+		response.setHeader("Content-Type", type + (options.encoding ? "; charset=" + options.encoding : ""));
 
-	if(isStream.readable(data) || owe.resourceData(data).stream) {
+	if(isStream.readable(data) || resourceData.stream) {
+
+		if(!response.headersSent && "contentLength" in resourceData)
+			response.setHeader("Content-Length", resourceData.contentLength);
+
 		data.once("error", failResponse.bind(null, request, response, options));
 		data.pipe(response);
 
@@ -156,9 +171,9 @@ function sendResponse(request, response, options, data) {
 	data = String(options.parseResult(request, response, data, type));
 
 	if(!response.headersSent && !response.getHeader("Content-Length"))
-		response.setHeader("Content-Length", Buffer.byteLength(data, "utf8"));
+		response.setHeader("Content-Length", Buffer.byteLength(data, options.encoding));
 
-	response.end(data, "utf8");
+	response.end(data, options.encoding);
 }
 
 module.exports = oweHttp;
