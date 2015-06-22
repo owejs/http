@@ -24,8 +24,10 @@ var o = owe({
 	},
 	e: function() {
 		var a = "";
+
 		for(var i = 0; i < Math.pow(2, 21); i++)
 			a += "a";
+
 		return a;
 	}()
 }, owe.serve({

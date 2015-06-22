@@ -31,8 +31,10 @@ function oweHttp(api, options) {
 		parseRoute: options.parseRoute || function(request, response, path) {
 			var currRoute = "",
 				route = [];
+
 			for(let i = 1; i < path.length; i++) {
 				let c = path.charAt(i);
+
 				if(c === "/") {
 					route.push(querystring.unescape(currRoute));
 					currRoute = "";
@@ -50,12 +52,14 @@ function oweHttp(api, options) {
 		contentType: options.contentType || function(request, response, data) {
 			if(isStream.readable(data) && "contentType" in data)
 				return data.contentType;
+
 			return typeof data === "object" ? "application/json" : "text/html";
 		},
 
 		parseResult: options.parseResult || function(request, response, data, type) {
 			if(type === "application/json")
 				return JSON.stringify(data, this.jsonReplacer, this.jsonSpace);
+
 			return data;
 		},
 
@@ -83,11 +87,12 @@ function oweHttp(api, options) {
 		}
 		catch(err) {
 			failResponse(request, response, options, err);
+
 			return;
 		}
 
 		var currApi = api.origin({
-			type: "http",
+			http: true,
 			request: request,
 			response: response
 		});
@@ -104,15 +109,17 @@ function oweHttp(api, options) {
 
 oweHttp.parseCloseData = {
 	simple(request, response, search) {
-			if(search === "")
-				return;
-			return querystring.parse(search.slice(1));
-		},
-		extended(request, response, search) {
-			if(search === "")
-				return;
-			return qs.parse(search.slice(1));
-		}
+		if(search === "")
+			return;
+
+		return querystring.parse(search.slice(1));
+	},
+	extended(request, response, search) {
+		if(search === "")
+			return;
+
+		return qs.parse(search.slice(1));
+	}
 };
 
 function successResponse(request, response, options, data) {
@@ -142,6 +149,7 @@ function sendResponse(request, response, options, data) {
 	if(isStream.readable(data) || owe.resourceData(data).stream) {
 		data.once("error", failResponse.bind(null, request, response, options));
 		data.pipe(response);
+
 		return;
 	}
 
