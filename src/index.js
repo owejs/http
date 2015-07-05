@@ -79,7 +79,7 @@ function oweHttp(api, options) {
 		onSuccess: options.onSuccess || function(request, response, data) {
 			return data;
 		},
-		onFail: options.onFail || function(request, response, err) {
+		onError: options.onError || function(request, response, err) {
 			return err;
 		}
 	};
@@ -139,9 +139,16 @@ function successResponse(request, response, options, data) {
 
 function failResponse(request, response, options, err) {
 
-	err = options.onFail(request, response, err);
+	err = options.onError(request, response, err);
 
-	if(typeof err === "object" && err !== null && "status" in err)
+	var isObjErr = typeof err === "object" && err !== null;
+
+	if(isObjErr && "expose" in err && !err.expose)
+		err = {
+			status: err.status
+		};
+
+	if(isObjErr && "status" in err)
 		response.statusCode = err.status;
 	else
 		response.statusCode = 404;
