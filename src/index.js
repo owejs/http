@@ -52,22 +52,25 @@ function oweHttp(api, options) {
 		parseCloseData: options.parseCloseData || oweHttp.parseCloseData.simple,
 
 		contentType: options.contentType || function(request, response, data) {
-			var resourceData = owe.resourceData(data);
+			var resourceData = owe.resourceData(data),
+				result;
 
 			if("contentType" in resourceData)
-				return resourceData.contentType;
+				result = resourceData.contentType;
+			else if((isStream.readable(data) || resourceData.stream) && "contentType" in data)
+				result = data.contentType;
 
-			if((isStream.readable(data) || resourceData.stream) && "contentType" in data)
-				return data.contentType;
+			if(!resourceData.file && !resourceData.stream)
+				result = typeof data === "object" ? "application/json" : "text/html";
 
-			if(resourceData.file || resourceData.stream)
-				return;
+			if(result)
+				result += (result.indexOf(";") === -1 && options.encoding ? "; charset=" + options.encoding : "");
 
-			return typeof data === "object" ? "application/json" : "text/html";
+			return result;
 		},
 
 		parseResult: options.parseResult || function(request, response, data, type) {
-			if(type === "application/json")
+			if(type.startsWith("application/json"))
 				return JSON.stringify(data, this.jsonReplacer, this.jsonSpace);
 
 			return data;
@@ -162,7 +165,7 @@ function sendResponse(request, response, options, data) {
 		resourceData = owe.resourceData(data);
 
 	if(type != null && !response.headersSent && !response.getHeader("Content-Type"))
-		response.setHeader("Content-Type", type + (options.encoding ? "; charset=" + options.encoding : ""));
+		response.setHeader("Content-Type", type);
 
 	if(isStream.readable(data) || resourceData.stream) {
 
