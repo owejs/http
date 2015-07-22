@@ -1,6 +1,6 @@
 {
 	"name": "owe-http",
-	"version": "0.2.6",
+	"version": "0.3.0",
 	"description": "Exposes an owe.js API node via HTTP.",
 	"keywords": [
 		"owe",
@@ -19,15 +19,12 @@
 	},
 	"main": "src/index.js",
 	"dependencies": {
-		"owe-core": "^0.4",
+		"owe-core": "^0.5",
 		"is-stream": "1.0.1",
 		"qs": "3.1.0"
 	},
-	"peerDependencies": {
-		"owe-core": "^0.4"
-	},
 	"devDependencies": {
-		"owe.js": "^0.4",
+		"owe.js": "^0.5",
 		"gulp": "3.8.11",
 		"gulp-mocha": "2.1.0",
 		"expect.js": "0.3.1",
