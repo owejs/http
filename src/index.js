@@ -1,10 +1,11 @@
 "use strict";
 
-var owe = require("owe-core"),
-	isStream = require("is-stream"),
-	querystring = require("querystring"),
-	qs = require("qs"),
-	url = require("url");
+const owe = require("owe-core");
+const isStream = require("is-stream");
+const querystring = require("querystring");
+const qs = require("qs");
+const body = require("body/any");
+const url = require("url");
 
 function oweHttp(api, options) {
 
@@ -22,20 +23,32 @@ function oweHttp(api, options) {
 		encoding: "utf8",
 
 		parseRequest: options.parseRequest || function(request, response) {
-			var parsedRequest = url.parse(request.url, true);
+			const parsedRequest = url.parse(request.url, true);
+
+			let parseCloseData = undefined;
+
+			if(typeof this.parseCloseData === "function")
+				parseCloseData = this.parseCloseData;
+			else if(typeof this.parseCloseData === "object")
+				parseCloseData = this.parseCloseData[request.method] || this.parseCloseData["all"];
+
+			if(typeof parseCloseData !== "function" || typeof this.parseRoute !== "function")
+				throw new Error("Invalid request.");
 
 			return {
 				route: this.parseRoute(request, response, parsedRequest.pathname),
-				closeData: this.parseCloseData(request, response, parsedRequest.search)
+				closeData: parseCloseData(request, response, parsedRequest.search)
 			};
 		},
 
 		parseRoute: options.parseRoute || function(request, response, path) {
-			var currRoute = "",
-				route = [];
+
+			const route = [];
+
+			let currRoute = "";
 
 			for(let i = 1; i < path.length; i++) {
-				let c = path.charAt(i);
+				const c = path.charAt(i);
 
 				if(c === "/") {
 					route.push(querystring.unescape(currRoute));
@@ -52,8 +65,8 @@ function oweHttp(api, options) {
 		parseCloseData: options.parseCloseData || oweHttp.parseCloseData.simple,
 
 		contentType: options.contentType || function(request, response, data) {
-			var resourceData = owe.resourceData(data),
-				result;
+			const resourceData = owe.resourceData(data);
+			let result;
 
 			if("contentType" in resourceData)
 				result = resourceData.contentType;
@@ -89,14 +102,10 @@ function oweHttp(api, options) {
 
 	return function servedHttpRequestListener(request, response) {
 
-		var parsedRequest,
-			route,
-			closeData;
+		let parsedRequest;
 
 		try {
 			parsedRequest = options.parseRequest(request, response);
-			route = parsedRequest.route;
-			closeData = parsedRequest.closeData;
 		}
 		catch(err) {
 			failResponse(request, response, options, err);
@@ -104,19 +113,32 @@ function oweHttp(api, options) {
 			return;
 		}
 
-		var currApi = api.origin({
-			http: true,
-			request: request,
-			response: response
+		Promise.all([
+			parsedRequest.route,
+			parsedRequest.closeData
+		]).then(function(result) {
+
+			const route = result[0];
+			const closeData = result[1];
+
+			request.oweRoute = route;
+
+			let currApi = api.origin({
+				http: true,
+				request,
+				response
+			});
+
+			for(let r of route)
+				currApi = currApi.route(r);
+
+			currApi.close(closeData).then(
+				successResponse.bind(null, request, response, options),
+				failResponse.bind(null, request, response, options)
+			);
+		}, function(err) {
+			failResponse(request, response, options, err);
 		});
-
-		for(let r of route)
-			currApi = currApi.route(r);
-
-		currApi.close(closeData).then(
-			successResponse.bind(null, request, response, options),
-			failResponse.bind(null, request, response, options)
-		);
 	};
 }
 
@@ -132,6 +154,16 @@ oweHttp.parseCloseData = {
 			return;
 
 		return qs.parse(search.slice(1));
+	},
+
+	body(request, response, search) {
+		return new Promise(function(resolve, reject) {
+			body(request, response, function(err, body) {
+				if(err)
+					return reject(err);
+				resolve(body);
+			});
+		});
 	}
 };
 
@@ -144,25 +176,52 @@ function failResponse(request, response, options, err) {
 
 	err = options.onError(request, response, err);
 
-	var isObjErr = typeof err === "object" && err !== null;
+	const isObjErr = err && typeof err === "object";
 
-	if(isObjErr && "expose" in err && !err.expose)
-		err = {
-			status: err.status
+	let status = 404;
+
+	if(isObjErr) {
+		const resourceData = owe.resourceData(err);
+
+		if("status" in resourceData)
+			status = resourceData.status;
+		else if("status" in err)
+			status = err.status;
+
+		const exposeMessage = function() {
+			Object.defineProperty(err, "message", {
+				value: err.message,
+				enumerable: true
+			});
 		};
 
-	if(isObjErr && "status" in err)
-		response.statusCode = err.status;
-	else
-		response.statusCode = 404;
+		const hideError = function() {
+			err = {};
+		};
+
+		if("expose" in resourceData) {
+			if(resourceData.expose)
+				exposeMessage();
+			else
+				hideError();
+		}
+		else if("expose" in err) {
+			if(err.expose)
+				exposeMessage();
+			else
+				hideError();
+		}
+	}
+
+	response.statusCode = status;
 
 	sendResponse(request, response, options, err);
 }
 
 function sendResponse(request, response, options, data) {
 
-	var type = options.contentType(request, response, data),
-		resourceData = owe.resourceData(data);
+	const type = options.contentType(request, response, data);
+	const resourceData = owe.resourceData(data);
 
 	if(type != null && !response.headersSent && !response.getHeader("Content-Type"))
 		response.setHeader("Content-Type", type);

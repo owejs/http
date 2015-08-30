@@ -4,6 +4,8 @@
 	"node": true,
 	"esnext": true,
 	"newcap": false,
+	"strict": true,
+	"varstmt": true,
 	"globals": {
 		"Symbol": false
 	}

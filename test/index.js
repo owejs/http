@@ -1,12 +1,12 @@
 "use strict";
 
-var owe = require("owe.js"),
-	oweHttp = require("../src"),
-	http = require("http"),
-	fs = require("fs"),
-	express = require("express");
+const owe = require("owe.js");
+const oweHttp = require("../src");
+const http = require("http");
+const fs = require("fs");
+const express = require("express");
 
-var o = owe({
+const o = owe({
 	a: "\u00bd + \u00bc = \u00be",
 	b: [1, 2, 3],
 	get c() {
@@ -23,9 +23,9 @@ var o = owe({
 		return "Hello " + word;
 	},
 	e: function() {
-		var a = "";
+		let a = "";
 
-		for(var i = 0; i < Math.pow(2, 21); i++)
+		for(let i = 0; i < Math.pow(2, 21); i++)
 			a += "a";
 
 		return a;
@@ -41,14 +41,14 @@ var o = owe({
 
 console.log(o.e.length);
 
-var old = function(req, res) {
+const old = function(req, res) {
 	res.writeHead(200, {
 		"Content-Type": "application/json"
 	});
 	res.end(JSON.stringify(o.c));
 };
 
-var router = oweHttp(o);
+const router = oweHttp(o);
 
 http.createServer(router).listen(5000);
 http.createServer(old).listen(5001);

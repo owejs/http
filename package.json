@@ -1,6 +1,6 @@
 {
 	"name": "owe-http",
-	"version": "0.3.1",
+	"version": "0.4.0",
 	"description": "Exposes an owe.js API node via HTTP.",
 	"keywords": [
 		"owe",
@@ -20,7 +20,8 @@
 	"main": "src/index.js",
 	"dependencies": {
 		"is-stream": "1.0.1",
-		"qs": "3.1.0"
+		"qs": "3.1.0",
+		"body": "5.1.0"
 	},
 	"peerDependencies": {
 		"owe-core": "^0.5"
