@@ -74,7 +74,7 @@ function oweHttp(api, options) {
 				result = data.contentType;
 
 			if(!resourceData.file && !resourceData.stream)
-				result = typeof data === "object" ? "application/json" : "text/html";
+				result = typeof data === "string" || (data && typeof data === "object" && data instanceof String) ? "text/html" : "application/json";
 
 			if(result)
 				result += (result.indexOf(";") === -1 && options.encoding ? "; charset=" + options.encoding : "");
