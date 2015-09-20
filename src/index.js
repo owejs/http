@@ -178,17 +178,15 @@ function failResponse(request, response, options, err) {
 
 	const isObjErr = err && typeof err === "object";
 
-	let status = 404;
+	let status = 500;
 
 	if(isObjErr) {
 		const resourceData = owe.resourceData(err);
 
-		if("status" in resourceData)
-			status = resourceData.status;
-		else if("status" in err)
-			status = err.status;
-
 		const exposeMessage = function() {
+
+			status = 400;
+
 			Object.defineProperty(err, "message", {
 				value: err.message,
 				enumerable: true
@@ -211,6 +209,16 @@ function failResponse(request, response, options, err) {
 			else
 				hideError();
 		}
+
+		if("status" in resourceData)
+			status = resourceData.status;
+		else if("status" in err)
+			status = err.status;
+
+		if("statusMessage" in resourceData)
+			response.statusMessage = resourceData.statusMessage;
+		else if("statusMessage" in err)
+			response.statusMessage = err.statusMessage;
 	}
 
 	response.statusCode = status;
