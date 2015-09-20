@@ -11,6 +11,7 @@
 	"disallowSpaceAfterObjectKeys": true,
 	"disallowSpaceAfterPrefixUnaryOperators": true,
 	"disallowSpaceBeforeBinaryOperators": [","],
+	"disallowSpaceBeforeSemicolon": true,
 	"disallowSpaceBeforePostfixUnaryOperators": true,
 	"disallowSpacesInCallExpression": true,
 	"disallowSpacesInFunction": {
@@ -20,6 +21,7 @@
 	"disallowSpacesInsideParentheses": true,
 	"disallowTrailingComma": true,
 	"disallowTrailingWhitespace": true,
+	"disallowDanglingUnderscores": true,
 	"requireBlocksOnNewline": true,
 	"requireCamelCaseOrUpperCaseIdentifiers": "ignoreProperties",
 	"requireCapitalizedConstructors": true,
@@ -52,7 +54,7 @@
 	"requireSpacesInFunction": {
 		"beforeOpeningCurlyBrace": true
 	},
-	"safeContextKeyword": ["that"],
+	"safeContextKeyword": [],
 	"validateAlignedFunctionParameters": {
 		"lineBreakAfterOpeningBraces": true,
 		"lineBreakBeforeClosingBraces": true

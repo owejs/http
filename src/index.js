@@ -23,84 +23,21 @@ function oweHttp(api, options) {
 
 		encoding: "utf8",
 
-		parseRequest: options.parseRequest || function(request, response) {
-			const parsedRequest = url.parse(request.url, true);
+		parseRequest: options.parseRequest || oweHttp.parseRequest,
 
-			let parseCloseData = undefined;
-
-			if(typeof this.parseCloseData === "function")
-				parseCloseData = this.parseCloseData;
-			else if(typeof this.parseCloseData === "object")
-				parseCloseData = this.parseCloseData[request.method] || this.parseCloseData.all;
-
-			if(typeof parseCloseData !== "function" || typeof this.parseRoute !== "function")
-				throw new Error("Invalid request.");
-
-			return {
-				route: this.parseRoute(request, response, parsedRequest.pathname),
-				closeData: parseCloseData(request, response, parsedRequest.search)
-			};
-		},
-
-		parseRoute: options.parseRoute || function(request, response, path) {
-
-			const route = [];
-
-			let currRoute = "";
-
-			for(let i = 1; i < path.length; i++) {
-				const c = path.charAt(i);
-
-				if(c === "/") {
-					route.push(querystring.unescape(currRoute));
-					currRoute = "";
-				}
-				else
-					currRoute += c;
-			}
-			route.push(querystring.unescape(currRoute));
-
-			return route;
-		},
+		parseRoute: options.parseRoute || oweHttp.parseRoute,
 
 		parseCloseData: options.parseCloseData || oweHttp.parseCloseData.simple,
 
-		contentType: options.contentType || function(request, response, data) {
-			const resourceData = owe.resourceData(data);
-			let result;
+		contentType: options.contentType || oweHttp.contentType,
 
-			if("contentType" in resourceData)
-				result = resourceData.contentType;
-			else if((isStream.readable(data) || resourceData.stream) && "contentType" in data)
-				result = data.contentType;
-
-			if(!resourceData.file && !resourceData.stream)
-				result = typeof data === "string" || (data && typeof data === "object" && data instanceof String) ? ["text/html", "text/plain", "application/json"] : ["application/json", "text/plain", "text/html"];
-
-			if(result) {
-				result = accepts(request).type(result);
-
-				if(result)
-					return result + (result.indexOf(";") === -1 && options.encoding ? "; charset=" + options.encoding : "");
-			}
-		},
-
-		parseResult: options.parseResult || function(request, response, data, type) {
-			if(type.startsWith("application/json"))
-				return JSON.stringify(data, this.jsonReplacer, this.jsonSpace);
-
-			return data;
-		},
+		parseResult: options.parseResult || oweHttp.parseResult,
 
 		jsonReplacer: options.jsonReplacer,
 		jsonSpace: options.jsonSpace,
 
-		onSuccess: options.onSuccess || function(request, response, data) {
-			return data;
-		},
-		onError: options.onError || function(request, response, err) {
-			return err;
-		}
+		onSuccess: options.onSuccess || ((request, response, data) => data),
+		onError: options.onError || ((request, response, err) => err)
 	};
 
 	return function servedHttpRequestListener(request, response) {
@@ -119,7 +56,7 @@ function oweHttp(api, options) {
 		Promise.all([
 			parsedRequest.route,
 			parsedRequest.closeData
-		]).then(function(result) {
+		]).then(result => {
 
 			const route = result[0];
 			const closeData = result[1];
@@ -139,40 +76,128 @@ function oweHttp(api, options) {
 				successResponse.bind(null, request, response, options),
 				failResponse.bind(null, request, response, options)
 			);
-		}, function(err) {
-			failResponse(request, response, options, err);
-		});
+		}, err => failResponse(request, response, options, err));
 	};
 }
 
-oweHttp.parseCloseData = {
-	simple(request, response, search) {
-		if(search === "")
-			return;
+/* Default parsers: */
 
-		return querystring.parse(search.slice(1));
+Object.assign(oweHttp, {
+	parseRequest(request, response) {
+		const parsedRequest = url.parse(request.url, true);
+
+		let parseCloseData;
+
+		if(typeof this.parseCloseData === "function")
+			parseCloseData = this.parseCloseData;
+		else if(typeof this.parseCloseData === "object")
+			parseCloseData = this.parseCloseData[request.method] || this.parseCloseData.all;
+
+		if(typeof parseCloseData !== "function" || typeof this.parseRoute !== "function")
+			throw expose(new Error("Invalid request."));
+
+		return {
+			route: this.parseRoute(request, response, parsedRequest.pathname),
+			closeData: parseCloseData(request, response, parsedRequest.search)
+		};
 	},
-	extended(request, response, search) {
-		if(search === "")
-			return;
 
-		return qs.parse(search.slice(1));
+	parseRoute(request, response, path) {
+
+		const route = [];
+
+		let currRoute = "";
+
+		for(let i = 1; i < path.length; i++) {
+			const c = path.charAt(i);
+
+			if(c === "/") {
+				route.push(querystring.unescape(currRoute));
+				currRoute = "";
+			}
+			else
+				currRoute += c;
+		}
+		route.push(querystring.unescape(currRoute));
+
+		return route;
 	},
 
-	body(request, response, search) {
-		return new Promise(function(resolve, reject) {
-			body(request, response, function(err, body) {
-				if(err)
-					return reject(err);
-				resolve(body);
+	parseCloseData: {
+		simple(request, response, search) {
+			if(search === "")
+				return;
+
+			return querystring.parse(search.slice(1));
+		},
+		extended(request, response, search) {
+			if(search === "")
+				return;
+
+			return qs.parse(search.slice(1));
+		},
+
+		body(request, response, search) {
+			return new Promise((resolve, reject) => {
+				body(request, response, (err, body) => {
+					if(err)
+						return reject(err);
+					resolve(body);
+				});
 			});
-		});
+		}
+	},
+
+	contentType(request, response, data) {
+		const resourceData = owe.resource(data);
+		let result;
+
+		if("contentType" in resourceData)
+			result = resourceData.contentType;
+		else if((isStream.readable(data) || resourceData.stream) && "contentType" in data)
+			result = data.contentType;
+
+		if(!resourceData.file && !resourceData.stream)
+			result = typeof data === "string" || (data && typeof data === "object" && data instanceof String) ? ["text/html", "text/plain", "application/json", "application/octet-stream"] : ["application/json", "text/plain", "text/html", "application/octet-stream"];
+
+		if(result) {
+			result = accepts(request).type(result);
+
+			if(result)
+				return result + (result.indexOf(";") === -1 && this && this.encoding ? "; charset=" + this.encoding : "");
+			else
+				throw new Error("Requested type cannot be served.");
+		}
+	},
+
+	parseResult(request, response, data, type) {
+
+		const resourceData = owe.resource(data);
+
+		if(typeof data === "function" && !resourceData.expose)
+			return "";
+
+		if(type.startsWith("application/json"))
+			return JSON.stringify(data, this && this.jsonReplacer, this && this.jsonSpace);
+
+		return data;
 	}
-};
+});
 
 function successResponse(request, response, options, data) {
 	response.statusCode = 200;
-	sendResponse(request, response, options, options.onSuccess(request, response, data));
+	try {
+		sendResponse(request, response, options, options.onSuccess(request, response, data));
+	}
+	catch(err) {
+		failResponse(request, response, options, err);
+	}
+}
+
+function expose(err) {
+	return owe.resource(err, {
+		expose: true
+	});
 }
 
 function failResponse(request, response, options, err) {
@@ -181,37 +206,10 @@ function failResponse(request, response, options, err) {
 
 	const isObjErr = err && typeof err === "object";
 
-	let status = 500;
+	let status;
 
 	if(isObjErr) {
-		const resourceData = owe.resourceData(err);
-
-		const exposeMessage = function() {
-
-			status = 400;
-
-			Object.defineProperty(err, "message", {
-				value: err.message,
-				enumerable: true
-			});
-		};
-
-		const hideError = function() {
-			err = {};
-		};
-
-		if("expose" in resourceData) {
-			if(resourceData.expose)
-				exposeMessage();
-			else
-				hideError();
-		}
-		else if("expose" in err) {
-			if(err.expose)
-				exposeMessage();
-			else
-				hideError();
-		}
+		const resourceData = owe.resource(err);
 
 		if("status" in resourceData)
 			status = resourceData.status;
@@ -222,9 +220,21 @@ function failResponse(request, response, options, err) {
 			response.statusMessage = resourceData.statusMessage;
 		else if("statusMessage" in err)
 			response.statusMessage = err.statusMessage;
+
+		if(resourceData.expose) {
+			if(status === undefined)
+				status = 400;
+
+			Object.defineProperty(err, "message", {
+				value: err.message,
+				enumerable: true
+			});
+		}
+		else
+			err = {};
 	}
 
-	response.statusCode = status;
+	response.statusCode = status || 500;
 
 	sendResponse(request, response, options, err);
 }
@@ -232,7 +242,7 @@ function failResponse(request, response, options, err) {
 function sendResponse(request, response, options, data) {
 
 	const type = options.contentType(request, response, data);
-	const resourceData = owe.resourceData(data);
+	const resourceData = owe.resource(data);
 
 	if(type != null && !response.headersSent && !response.getHeader("Content-Type"))
 		response.setHeader("Content-Type", type);
