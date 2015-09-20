@@ -5,6 +5,7 @@ const isStream = require("is-stream");
 const querystring = require("querystring");
 const qs = require("qs");
 const body = require("body/any");
+const accepts = require("accepts");
 const url = require("url");
 
 function oweHttp(api, options) {
@@ -30,7 +31,7 @@ function oweHttp(api, options) {
 			if(typeof this.parseCloseData === "function")
 				parseCloseData = this.parseCloseData;
 			else if(typeof this.parseCloseData === "object")
-				parseCloseData = this.parseCloseData[request.method] || this.parseCloseData["all"];
+				parseCloseData = this.parseCloseData[request.method] || this.parseCloseData.all;
 
 			if(typeof parseCloseData !== "function" || typeof this.parseRoute !== "function")
 				throw new Error("Invalid request.");
@@ -74,12 +75,14 @@ function oweHttp(api, options) {
 				result = data.contentType;
 
 			if(!resourceData.file && !resourceData.stream)
-				result = typeof data === "string" || (data && typeof data === "object" && data instanceof String) ? "text/html" : "application/json";
+				result = typeof data === "string" || (data && typeof data === "object" && data instanceof String) ? ["text/html", "text/plain", "application/json"] : ["application/json", "text/plain", "text/html"];
 
-			if(result)
-				result += (result.indexOf(";") === -1 && options.encoding ? "; charset=" + options.encoding : "");
+			if(result) {
+				result = accepts(request).type(result);
 
-			return result;
+				if(result)
+					return result + (result.indexOf(";") === -1 && options.encoding ? "; charset=" + options.encoding : "");
+			}
 		},
 
 		parseResult: options.parseResult || function(request, response, data, type) {
