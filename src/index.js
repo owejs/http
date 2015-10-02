@@ -33,7 +33,7 @@ function oweHttp(api, options) {
 
 		parseResult: options.parseResult || oweHttp.parseResult,
 
-		jsonReplacer: options.jsonReplacer,
+		jsonReplacer: options.jsonReplacer || oweHttp.jsonReplacer,
 		jsonSpace: options.jsonSpace,
 
 		onSuccess: options.onSuccess || ((request, response, data) => data),
@@ -181,6 +181,12 @@ Object.assign(oweHttp, {
 			return JSON.stringify(data, this && this.jsonReplacer, this && this.jsonSpace);
 
 		return data;
+	},
+
+	jsonReplacer(key, value) {
+		const exposed = owe.resource(value).expose;
+
+		return exposed !== undefined ? exposed : value;
 	}
 });
 
