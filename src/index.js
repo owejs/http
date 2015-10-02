@@ -184,9 +184,15 @@ Object.assign(oweHttp, {
 	},
 
 	jsonReplacer(key, value) {
-		const exposed = owe.resource(value).expose;
+		const resource = owe.resource(value);
 
-		return exposed !== undefined ? exposed : value;
+		if(resource.expose === undefined)
+			return value;
+
+		if(typeof resource.expose === "function")
+			return resource.expose(value);
+
+		return resource.expose;
 	}
 });
 
