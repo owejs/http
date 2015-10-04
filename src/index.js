@@ -144,7 +144,7 @@ Object.assign(oweHttp, {
 						return reject(err);
 					resolve(body);
 				});
-			});
+			}).catch(expose);
 		}
 	},
 
