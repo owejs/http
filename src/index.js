@@ -186,7 +186,7 @@ Object.assign(oweHttp, {
 	jsonReplacer(key, value) {
 		const resource = owe.resource(value);
 
-		if(resource.expose === undefined && resource.expose !== true)
+		if(resource.expose === undefined || resource.expose === true)
 			return value;
 
 		if(typeof resource.expose === "function")
