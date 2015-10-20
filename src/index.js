@@ -9,7 +9,6 @@ const accepts = require("accepts");
 const url = require("url");
 
 function oweHttp(api, options) {
-
 	if(owe.isBound(api))
 		api = owe.api(api);
 
@@ -20,7 +19,6 @@ function oweHttp(api, options) {
 		options = {};
 
 	options = {
-
 		encoding: "utf8",
 
 		parseRequest: options.parseRequest || oweHttp.parseRequest,
@@ -37,11 +35,12 @@ function oweHttp(api, options) {
 		jsonSpace: options.jsonSpace,
 
 		onSuccess: options.onSuccess || ((request, response, data) => data),
-		onError: options.onError || ((request, response, err) => err)
+		onError: options.onError || ((request, response, err) => err),
+
+		origin: options.origin || {}
 	};
 
 	return function servedHttpRequestListener(request, response) {
-
 		let parsedRequest;
 
 		try {
@@ -57,17 +56,16 @@ function oweHttp(api, options) {
 			parsedRequest.route,
 			parsedRequest.closeData
 		]).then(result => {
-
 			const route = result[0];
 			const closeData = result[1];
 
 			request.oweRoute = route;
 
-			let currApi = api.origin({
+			let currApi = api.origin(Object.assign({
 				http: true,
 				request,
 				response
-			});
+			}, options.origin));
 
 			for(let r of route)
 				currApi = currApi.route(r);
@@ -103,7 +101,6 @@ Object.assign(oweHttp, {
 	},
 
 	parseRoute(request, response, path) {
-
 		const route = [];
 
 		let currRoute = "";
@@ -171,7 +168,6 @@ Object.assign(oweHttp, {
 	},
 
 	parseResult(request, response, data, type) {
-
 		const resourceData = owe.resource(data);
 
 		if(typeof data === "function" && !resourceData.expose)
@@ -213,7 +209,6 @@ function expose(err) {
 }
 
 function failResponse(request, response, options, err) {
-
 	err = options.onError(request, response, err);
 
 	const isObjErr = err && typeof err === "object";
@@ -252,7 +247,6 @@ function failResponse(request, response, options, err) {
 }
 
 function sendResponse(request, response, options, data) {
-
 	const type = options.contentType(request, response, data);
 	const resourceData = owe.resource(data);
 
