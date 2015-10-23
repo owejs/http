@@ -61,11 +61,11 @@ function oweHttp(api, options) {
 
 			request.oweRoute = route;
 
-			let currApi = api.origin(Object.assign({
+			let currApi = api.origin(Object.assign({}, options.origin, {
 				http: true,
 				request,
 				response
-			}, options.origin));
+			}));
 
 			for(let r of route)
 				currApi = currApi.route(r);
@@ -84,19 +84,12 @@ Object.assign(oweHttp, {
 	parseRequest(request, response) {
 		const parsedRequest = url.parse(request.url, true);
 
-		let parseCloseData;
-
-		if(typeof this.parseCloseData === "function")
-			parseCloseData = this.parseCloseData;
-		else if(typeof this.parseCloseData === "object")
-			parseCloseData = this.parseCloseData[request.method] || this.parseCloseData.all;
-
-		if(typeof parseCloseData !== "function" || typeof this.parseRoute !== "function")
+		if(typeof this.parseCloseData !== "function" || typeof this.parseRoute !== "function")
 			throw expose(new Error("Invalid request."));
 
 		return {
 			route: this.parseRoute(request, response, parsedRequest.pathname),
-			closeData: parseCloseData(request, response, parsedRequest.search)
+			closeData: this.parseCloseData(request, response, parsedRequest.search)
 		};
 	},
 
@@ -232,10 +225,11 @@ function failResponse(request, response, options, err) {
 			if(status === undefined)
 				status = 400;
 
-			Object.defineProperty(err, "message", {
-				value: err.message,
-				enumerable: true
-			});
+			if(resourceData.expose === true)
+				Object.defineProperty(err, "message", {
+					value: err.message,
+					enumerable: true
+				});
 		}
 		else
 			err = {};
