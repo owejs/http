@@ -31,7 +31,7 @@ function oweHttp(api, options) {
 
 		parseResult: options.parseResult || oweHttp.parseResult,
 
-		jsonReplacer: options.jsonReplacer || oweHttp.jsonReplacer,
+		jsonReplacer: options.jsonReplacer,
 		jsonSpace: options.jsonSpace,
 
 		onSuccess: options.onSuccess || ((request, response, data) => data),
@@ -67,7 +67,7 @@ function oweHttp(api, options) {
 				response
 			}));
 
-			for(let r of route)
+			for(const r of route)
 				currApi = currApi.route(r);
 
 			currApi.close(closeData).then(
@@ -127,7 +127,7 @@ Object.assign(oweHttp, {
 			return qs.parse(search.slice(1));
 		},
 
-		body(request, response, search) {
+		body(request, response) {
 			return new Promise((resolve, reject) => {
 				body(request, response, (err, body) => {
 					if(err)
@@ -147,14 +147,20 @@ Object.assign(oweHttp, {
 		else if((isStream.readable(data) || resourceData.stream) && "contentType" in data)
 			result = data.contentType;
 
-		if(!resourceData.file && !resourceData.stream)
-			result = typeof data === "string" || (data && typeof data === "object" && data instanceof String) ? ["text/html", "text/plain", "application/json", "application/octet-stream"] : ["application/json", "text/plain", "text/html", "application/octet-stream"];
+		if(!resourceData.file && !resourceData.stream) {
+			if(typeof data === "string" || data && typeof data === "object" && data instanceof String)
+				result = ["text/html", "text/plain", "application/json", "application/octet-stream"];
+			else if(typeof data !== "object" || data && (data.toString && data.toString !== Object.prototype.toString || data.valueOf && data.valueOf !== Object.prototype.valueOf))
+				result = ["application/json", "text/plain", "text/html", "application/octet-stream"];
+			else
+				result = "application/json";
+		}
 
 		if(result) {
 			result = accepts(request).type(result);
 
 			if(result)
-				return result + (result.indexOf(";") === -1 && this && this.encoding ? "; charset=" + this.encoding : "");
+				return result + (result.indexOf(";") === -1 && this && this.encoding ? `; charset=${this.encoding}` : "");
 			else
 				throw new Error("Requested type cannot be served.");
 		}
@@ -167,21 +173,22 @@ Object.assign(oweHttp, {
 			return "";
 
 		if(type.startsWith("application/json"))
-			return JSON.stringify(data, this && this.jsonReplacer, this && this.jsonSpace);
+			return JSON.stringify(data, (key, value) => {
+				const resource = owe.resource(value);
+
+				if(typeof resource.expose === "function")
+					value = resource.expose(value);
+
+				if(resource.expose !== undefined && typeof resource.expose !== "boolean")
+					value = resource.expose;
+
+				if(this && this.jsonReplacer)
+					return this.jsonReplacer(key, value);
+
+				return value;
+			}, this && this.jsonSpace);
 
 		return data;
-	},
-
-	jsonReplacer(key, value) {
-		const resource = owe.resource(value);
-
-		if(resource.expose === undefined || resource.expose === true)
-			return value;
-
-		if(typeof resource.expose === "function")
-			return resource.expose(value);
-
-		return resource.expose;
 	}
 });
 

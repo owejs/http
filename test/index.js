@@ -11,7 +11,7 @@ const o = owe({
 	b: [1, 2, 3],
 	get c() {
 		return {
-			http: http,
+			http,
 			e: this.e,
 			get handle() {
 				return fs.createReadStream(__filename);
@@ -20,7 +20,7 @@ const o = owe({
 		};
 	},
 	d(word) {
-		return "Hello " + word;
+		return `Hello ${word}`;
 	},
 	e: function() {
 		let a = "";
@@ -53,6 +53,6 @@ const router = oweHttp(o);
 http.createServer(router).listen(5000);
 http.createServer(old).listen(5001);
 
-express().get("/c", function(req, res) {
+express().get("/c", (req, res) => {
 	res.send(o.c);
 }).listen(5002);
