@@ -61,16 +61,11 @@ function oweHttp(api, options) {
 
 			request.oweRoute = route;
 
-			let currApi = api.origin(Object.assign({}, options.origin, {
+			api.origin(Object.assign({}, options.origin, {
 				http: true,
 				request,
 				response
-			}));
-
-			for(const r of route)
-				currApi = currApi.route(r);
-
-			currApi.close(closeData).then(
+			})).route(...route).close(closeData).then(
 				successResponse.bind(null, request, response, options),
 				failResponse.bind(null, request, response, options)
 			);
