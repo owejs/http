@@ -7,7 +7,7 @@
 		"no-redeclare": 2,
 		"no-loop-func": 0,
 		"new-cap": 1,
-		"strict": [1, "global"],
+		"strict": [2, "global"],
 		"no-func-assign": 1,
 		"no-inner-declarations": 2,
 		"no-obj-calls": 2,
