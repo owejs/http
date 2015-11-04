@@ -164,7 +164,7 @@ Object.assign(oweHttp, {
 	parseResult(request, response, data, type) {
 		const resourceData = owe.resource(data);
 
-		if(typeof data === "function" && !resourceData.expose)
+		if(typeof data === "function" && !("expose" in resourceData))
 			return "";
 
 		if(type.startsWith("application/json"))
@@ -174,7 +174,7 @@ Object.assign(oweHttp, {
 				if(typeof resource.expose === "function")
 					value = resource.expose(value);
 
-				if(resource.expose !== undefined && typeof resource.expose !== "boolean")
+				if(!("expose" in resourceData))
 					value = resource.expose;
 
 				if(this && this.jsonReplacer)
@@ -198,9 +198,10 @@ function successResponse(request, response, options, data) {
 }
 
 function expose(err) {
-	return owe.resource(err, {
-		expose: true
-	});
+	return owe.resource(err, Object.defineProperty(err, "message", {
+		value: err.message,
+		enumerable: true
+	}));
 }
 
 function failResponse(request, response, options, err) {
@@ -223,15 +224,11 @@ function failResponse(request, response, options, err) {
 		else if("statusMessage" in err)
 			response.statusMessage = err.statusMessage;
 
-		if(resourceData.expose) {
+		if("expose" in resourceData) {
 			if(status === undefined)
 				status = 400;
 
-			if(resourceData.expose === true)
-				Object.defineProperty(err, "message", {
-					value: err.message,
-					enumerable: true
-				});
+			err = resourceData.expose;
 		}
 		else
 			err = {};
