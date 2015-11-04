@@ -171,11 +171,12 @@ Object.assign(oweHttp, {
 			return JSON.stringify(data, (key, value) => {
 				const resource = owe.resource(value);
 
-				if(typeof resource.expose === "function")
-					value = resource.expose(value);
-
-				if("expose" in resourceData)
-					value = resource.expose;
+				if("expose" in resource) {
+					if(typeof resource.expose === "function")
+						value = resource.expose(value);
+					else
+						value = resource.expose;
+				}
 
 				if(this && this.jsonReplacer)
 					return this.jsonReplacer(key, value);
