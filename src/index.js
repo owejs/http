@@ -174,7 +174,7 @@ Object.assign(oweHttp, {
 				if(typeof resource.expose === "function")
 					value = resource.expose(value);
 
-				if(!("expose" in resourceData))
+				if("expose" in resourceData)
 					value = resource.expose;
 
 				if(this && this.jsonReplacer)
