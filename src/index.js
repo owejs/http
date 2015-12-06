@@ -158,9 +158,9 @@ Object.assign(oweHttp, {
 
 			if(result)
 				return result + (result.indexOf(";") === -1 && this && this.encoding ? `; charset=${this.encoding}` : "");
-			else
-				throw new Error("Requested type cannot be served.");
 		}
+
+		throw expose(new Error("Requested type cannot be served."));
 	},
 
 	parseResult(request, response, data, type) {
@@ -192,6 +192,7 @@ Object.assign(oweHttp, {
 
 function successResponse(request, response, options, data) {
 	response.statusCode = 200;
+
 	try {
 		sendResponse(request, response, options, options.onSuccess(request, response, data));
 	}
@@ -239,18 +240,30 @@ function failResponse(request, response, options, err) {
 
 	response.statusCode = status || 500;
 
-	sendResponse(request, response, options, err);
+	try {
+		sendResponse(request, response, options, err);
+	}
+	catch(innerErr) {
+		err = innerErr && typeof innerErr === "object" ? innerErr.message : innerErr;
+
+		if(typeof err !== "string") {
+			err = "Internal server error.";
+			response.statusCode = 500;
+		}
+
+		sendResponse(request, response, options, err, true);
+	}
 }
 
-function sendResponse(request, response, options, data) {
-	const type = options.contentType(request, response, data);
+function sendResponse(request, response, options, data, noErrors) {
+	const type = noErrors ? "text/plain" : options.contentType(request, response, data);
+
 	const resourceData = owe.resource(data);
 
 	if(type != null && !response.headersSent && !response.getHeader("Content-Type"))
 		response.setHeader("Content-Type", type);
 
 	if(isStream.readable(data) || resourceData.stream) {
-
 		if(!response.headersSent) {
 			if("contentLength" in resourceData)
 				response.setHeader("Content-Length", resourceData.contentLength);
@@ -264,7 +277,8 @@ function sendResponse(request, response, options, data) {
 		return;
 	}
 
-	data = String(options.parseResult(request, response, data, type));
+	if(!noErrors || typeof data !== "string")
+		data = String(options.parseResult(request, response, data, type));
 
 	if(!response.headersSent && !response.getHeader("Content-Length"))
 		response.setHeader("Content-Length", Buffer.byteLength(data, options.encoding));
