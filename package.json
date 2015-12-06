@@ -23,7 +23,7 @@
 	"main": "src/index.js",
 	"dependencies": {
 		"is-stream": "1.0.1",
-		"qs": "5.2.0",
+		"qs": "6.0.1",
 		"body": "5.1.0",
 		"accepts": "1.3.0"
 	},
@@ -31,16 +31,16 @@
 		"owe-core": "^0.9"
 	},
 	"devDependencies": {
-		"eslint": "1.8.0",
+		"eslint": "1.10.3",
 		"expect.js": "0.3.1",
 		"express": "latest",
 		"gulp": "3.9.0",
-		"gulp-eslint": "1.0.0",
-		"gulp-mocha": "2.1.3",
-		"mocha": "2.3.3",
+		"gulp-eslint": "1.1.1",
+		"gulp-mocha": "2.2.0",
+		"mocha": "2.3.4",
 		"owe-core": "^0.9",
 		"owe.js": "^0.9",
-		"run-sequence": "1.1.4"
+		"run-sequence": "1.1.5"
 	},
 	"scripts": {
 		"test": "./node_modules/gulp/bin/gulp.js test"

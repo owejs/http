@@ -119,7 +119,9 @@ Object.assign(oweHttp, {
 			if(search === "")
 				return;
 
-			return qs.parse(search.slice(1));
+			return qs.parse(search.slice(1), {
+				allowDots: true
+			});
 		},
 
 		body(request, response) {
