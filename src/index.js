@@ -80,7 +80,7 @@ Object.assign(oweHttp, {
 		const parsedRequest = url.parse(request.url, true);
 
 		if(typeof this.parseCloseData !== "function" || typeof this.parseRoute !== "function")
-			throw expose(new Error("Invalid request."));
+			throw new owe.exposed.Error("Invalid request.");
 
 		return {
 			route: this.parseRoute(request, response, parsedRequest.pathname),
@@ -131,7 +131,7 @@ Object.assign(oweHttp, {
 						return reject(err);
 					resolve(body);
 				});
-			}).catch(expose);
+			}).catch(owe.expose);
 		}
 	},
 
@@ -160,24 +160,22 @@ Object.assign(oweHttp, {
 				return result + (result.indexOf(";") === -1 && this && this.encoding ? `; charset=${this.encoding}` : "");
 		}
 
-		throw expose(new Error("Requested type cannot be served."));
+		throw new owe.exposed.Error("Requested type cannot be served.");
 	},
 
 	parseResult(request, response, data, type) {
-		const resourceData = owe.resource(data);
+		const exposedValue = owe.exposed.getValue(data);
 
-		if(typeof data === "function" && !("expose" in resourceData))
+		if(typeof data === "function" && exposedValue === undefined)
 			return "";
 
 		if(type.startsWith("application/json"))
 			return JSON.stringify(data, (key, value) => {
-				const resource = owe.resource(value);
-
-				if("expose" in resource) {
-					if(typeof resource.expose === "function")
-						value = resource.expose(value);
+				if(exposedValue !== undefined) {
+					if(typeof exposedValue === "function")
+						value = exposedValue(value);
 					else
-						value = resource.expose;
+						value = exposedValue;
 				}
 
 				if(this && this.jsonReplacer)
@@ -201,13 +199,6 @@ function successResponse(request, response, options, data) {
 	}
 }
 
-function expose(err) {
-	return owe.resource(err, Object.defineProperty(err, "message", {
-		value: err.message,
-		enumerable: true
-	}));
-}
-
 function failResponse(request, response, options, err) {
 	err = options.onError(request, response, err);
 
@@ -217,6 +208,7 @@ function failResponse(request, response, options, err) {
 
 	if(isObjErr) {
 		const resourceData = owe.resource(err);
+		const exposedValue = owe.exposed.getValue(err);
 
 		if("status" in resourceData)
 			status = resourceData.status;
@@ -228,7 +220,7 @@ function failResponse(request, response, options, err) {
 		else if("statusMessage" in err)
 			response.statusMessage = err.statusMessage;
 
-		if("expose" in resourceData) {
+		if(exposedValue !== undefined) {
 			if(status === undefined)
 				status = 400;
 

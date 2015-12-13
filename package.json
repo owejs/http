@@ -1,6 +1,6 @@
 {
 	"name": "owe-http",
-	"version": "0.9.4",
+	"version": "0.10.0",
 	"description": "Exposes an owe.js API node via HTTP.",
 	"keywords": [
 		"owe",
@@ -28,7 +28,7 @@
 		"accepts": "1.3.0"
 	},
 	"peerDependencies": {
-		"owe-core": "^0.9"
+		"owe-core": "^0.10"
 	},
 	"devDependencies": {
 		"eslint": "1.10.3",
@@ -38,8 +38,8 @@
 		"gulp-eslint": "1.1.1",
 		"gulp-mocha": "2.2.0",
 		"mocha": "2.3.4",
-		"owe-core": "^0.9",
-		"owe.js": "^0.9",
+		"owe-core": "^0.10",
+		"owe.js": "^0.10",
 		"run-sequence": "1.1.5"
 	},
 	"scripts": {
