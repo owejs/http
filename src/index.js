@@ -164,13 +164,13 @@ Object.assign(oweHttp, {
 	},
 
 	parseResult(request, response, data, type) {
-		const exposedValue = owe.exposed.getValue(data);
-
-		if(typeof data === "function" && exposedValue === undefined)
+		if(typeof data === "function" && !owe.isExposed(data))
 			return "";
 
 		if(type.startsWith("application/json"))
 			return JSON.stringify(data, (key, value) => {
+				const exposedValue = owe.exposed.getValue(value);
+
 				if(exposedValue !== undefined) {
 					if(typeof exposedValue === "function")
 						value = exposedValue(value);
