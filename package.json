@@ -1,6 +1,6 @@
 {
 	"name": "owe-http",
-	"version": "0.11.0",
+	"version": "0.11.1",
 	"description": "Exposes an owe.js API node via HTTP.",
 	"keywords": [
 		"owe",

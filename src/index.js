@@ -155,9 +155,9 @@ Object.assign(oweHttp, {
 
 			if(result)
 				return result + (result.indexOf(";") === -1 && this && this.encoding ? `; charset=${this.encoding}` : "");
-		}
 
-		throw new owe.exposed.Error("Requested type cannot be served.");
+			throw new owe.exposed.Error("Requested type cannot be served.");
+		}
 	},
 
 	parseResult(request, response, data, type) {
