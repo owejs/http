@@ -15,11 +15,11 @@ function oweHttp(api, options) {
 	if(!owe.isApi(api))
 		throw new TypeError("owe-http can only expose owe.Apis or bound object.");
 
-	if(typeof options !== "object" || options === null)
+	if(!options || typeof options !== "object")
 		options = {};
 
 	options = {
-		encoding: "utf8",
+		encoding: options.encoding || "utf8",
 
 		parseRequest: options.parseRequest || oweHttp.parseRequest,
 
@@ -55,10 +55,7 @@ function oweHttp(api, options) {
 		Promise.all([
 			parsedRequest.route,
 			parsedRequest.closeData
-		]).then(result => {
-			const route = result[0];
-			const closeData = result[1];
-
+		]).then(([route, closeData]) => {
 			request.oweRoute = route;
 
 			api.origin(Object.assign({}, options.origin, {
