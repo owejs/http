@@ -36,7 +36,7 @@
 		"eslint": "3.18.0",
 		"eslint-config-cortys": "1.x",
 		"chai": "3.5.0",
-		"chai-as-promised": "6.0.0",
+		"chai-as-promised": "7.0.0",
 		"express": "latest",
 		"gulp": "3.9.1",
 		"gulp-eslint": "3.0.1",
