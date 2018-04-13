@@ -107,13 +107,13 @@ Object.assign(oweHttp, {
 
 	parseCloseData: {
 		simple(request, response, search) {
-			if(search === "")
+			if(search == null || search === "")
 				return;
 
 			return querystring.parse(search.slice(1));
 		},
 		extended(request, response, search) {
-			if(search === "")
+			if(search == null || search === "")
 				return;
 
 			return qs.parse(search.slice(1), {
